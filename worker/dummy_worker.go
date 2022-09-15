@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang/gddo/httputil/header"
@@ -26,10 +27,10 @@ type TextRequest struct {
 }
 
 type TextResponse struct {
-	Length      int      `json:"length"`
-	Ids         []string `json:"ids"`
-	Texts       []string `json:"texts"`
-	ProcessTime int      `json:"process_time"`
+	Length      int       `json:"length"`
+	Ids         []string  `json:"ids"`
+	Diversity   []float32 `json:"diversity"`
+	ProcessTime int       `json:"process_time"`
 }
 
 func processTexts(tReq TextRequest) TextResponse {
@@ -37,9 +38,16 @@ func processTexts(tReq TextRequest) TextResponse {
 	processFactor := BaseFactor + (length-1)*Extra
 	fmt.Printf("Request with length = %d, Process for %d ms.\n", length, processFactor)
 	time.Sleep(time.Duration(processFactor) * TimeUnit)
-	outputs := make([]string, length)
-	copy(outputs, tReq.Texts)
-	return TextResponse{Length: length, Ids: tReq.Ids, Texts: outputs, ProcessTime: processFactor}
+	outputs := make([]float32, length)
+	for idx, text := range tReq.Texts {
+		splits := strings.Split(text, " ")
+		unique := make(map[string]bool)
+		for _, split := range splits {
+			unique[split] = true
+		}
+		outputs[idx] = float32(len(unique)) / float32(len(splits))
+	}
+	return TextResponse{Length: length, Ids: tReq.Ids, Diversity: outputs, ProcessTime: processFactor}
 }
 
 func process(w http.ResponseWriter, r *http.Request) {

@@ -6,10 +6,12 @@ import requests
 def send_request(address: str, length: int):
     inputs = {
         "length": length,
-        "texts": ["Some text"] * length
+        "texts": ["Some text here to test text processor"] * length
     }
     resp = requests.post(address + "/infer", json=inputs)
     outputs = resp.json()
+    diversity = outputs["diversity"]
+    print(f"first response diversity: {diversity[0]}")
     total_time = outputs["process_time"]
     avg_time = total_time / length
     print(f"length {length}, total {total_time} time unit, average time {avg_time} / text")
