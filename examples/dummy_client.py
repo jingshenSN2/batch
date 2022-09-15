@@ -5,6 +5,7 @@ import requests
 
 def send_request(address: str, length: int):
     inputs = {
+        "length": length,
         "texts": ["Some text"] * length
     }
     resp = requests.post(address + "/infer", json=inputs)

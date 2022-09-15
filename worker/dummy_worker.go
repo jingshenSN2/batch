@@ -19,26 +19,31 @@ const (
 	Extra      = 1
 )
 
-func processTexts(texts []string) ([]string, int) {
-	length := len(texts)
+type TextRequest struct {
+	Length int      `json:"length"`
+	Ids    []string `json:"ids"`
+	Texts  []string `json:"texts"`
+}
+
+type TextResponse struct {
+	Length      int      `json:"length"`
+	Ids         []string `json:"ids"`
+	Texts       []string `json:"texts"`
+	ProcessTime int      `json:"process_time"`
+}
+
+func processTexts(tReq TextRequest) TextResponse {
+	length := tReq.Length
 	processFactor := BaseFactor + (length-1)*Extra
 	fmt.Printf("Request with length = %d, Process for %d ms.\n", length, processFactor)
 	time.Sleep(time.Duration(processFactor) * TimeUnit)
 	outputs := make([]string, length)
-	copy(outputs, texts)
-	return outputs, processFactor
+	copy(outputs, tReq.Texts)
+	return TextResponse{Length: length, Ids: tReq.Ids, Texts: outputs, ProcessTime: processFactor}
 }
 
 func process(w http.ResponseWriter, r *http.Request) {
-	type TextRequest struct {
-		Texts []string `json:"texts"`
-	}
-	type TextResponse struct {
-		Texts       []string `json:"texts"`
-		ProcessTime int      `json:"process_time"`
-	}
 	var tReq TextRequest
-	var tResp TextResponse
 	if r.Method == "POST" {
 		if r.Header.Get("Content-Type") != "" {
 			value, _ := header.ParseValueAndParams(r.Header, "Content-Type")
@@ -62,11 +67,9 @@ func process(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		outputs, processTime := processTexts(tReq.Texts)
-		tResp.Texts = outputs
-		tResp.ProcessTime = processTime
+		outputs := processTexts(tReq)
 
-		respBody, err := json.Marshal(tResp)
+		respBody, err := json.Marshal(outputs)
 		if err != nil {
 			msg := "Error when marshal response body."
 			http.Error(w, msg, http.StatusInternalServerError)
